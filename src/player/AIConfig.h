@@ -20,6 +20,12 @@ struct AIConfig {
   float homeRegionBonus = 0.5f;  // bonus multiplier for moves from home region
   float wrongRegionPenalty = 10.0f; // penalty for moving into wrong region
 
+  // --- BeamAI parameters ---
+  float stragglerWeight = 2.0f; // penalty for pieces falling behind the average
+  float targetRegionBonus =
+      5.0f;                    // bonus per piece already in the target region
+  float progressWeight = 1.0f; // weight on total forward progress of all pieces
+
   /// Returns a config with all default values.
   static AIConfig defaults() { return AIConfig{}; }
 };

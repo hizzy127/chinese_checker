@@ -137,6 +137,12 @@ public:
         pc.aiConfig.homeRegionBonus = std::stof(kvs["home_region_bonus"]);
       if (kvs.count("wrong_region_penalty"))
         pc.aiConfig.wrongRegionPenalty = std::stof(kvs["wrong_region_penalty"]);
+      if (kvs.count("straggler_weight"))
+        pc.aiConfig.stragglerWeight = std::stof(kvs["straggler_weight"]);
+      if (kvs.count("target_region_bonus"))
+        pc.aiConfig.targetRegionBonus = std::stof(kvs["target_region_bonus"]);
+      if (kvs.count("progress_weight"))
+        pc.aiConfig.progressWeight = std::stof(kvs["progress_weight"]);
 
       out.players.push_back(pc);
     }

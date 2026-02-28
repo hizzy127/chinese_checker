@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "player/AIConfig.h"
+#include "player/BeamAI.h"
 #include "player/GreedyAI.h"
 #include "player/MinimaxAI.h"
 #include <iostream>
@@ -34,11 +35,14 @@ Game::Game(const std::vector<std::pair<int, PlayerType>> &playerConfigs) {
   std::cout << "Board initialized with " << numPlayers_ << " players."
             << std::endl;
   for (auto &[id, type] : playerConfigs) {
-    const char *typeName =
-        (type == PlayerType::GreedyAI) ? "GreedyAI" : "MinimaxAI";
+    const char *typeName = (type == PlayerType::GreedyAI) ? "GreedyAI"
+                           : (type == PlayerType::BeamAI) ? "BeamAI"
+                                                          : "MinimaxAI";
     std::cout << "Player " << id << " in game (" << typeName << ").\n";
     if (type == PlayerType::GreedyAI)
       playerObjects_.emplace_back(std::make_unique<GreedyAI>(id, &board_));
+    else if (type == PlayerType::BeamAI)
+      playerObjects_.emplace_back(std::make_unique<BeamAI>(id, &board_));
     else
       playerObjects_.emplace_back(std::make_unique<MinimaxAI>(id, &board_));
   }
@@ -59,16 +63,20 @@ Game::Game(const std::vector<PlayerSetup> &playerSetups) {
   std::cout << "Board initialized with " << numPlayers_ << " players."
             << std::endl;
   for (auto &ps : playerSetups) {
-    const char *typeName =
-        (ps.type == PlayerType::GreedyAI) ? "GreedyAI" : "MinimaxAI";
+    const char *typeName = (ps.type == PlayerType::GreedyAI) ? "GreedyAI"
+                           : (ps.type == PlayerType::BeamAI) ? "BeamAI"
+                                                             : "MinimaxAI";
     std::cout << "Player " << ps.id << " in game (" << typeName;
-    if (ps.type == PlayerType::MinimaxAI) {
+    if (ps.type == PlayerType::MinimaxAI || ps.type == PlayerType::BeamAI) {
       std::cout << ", depth=" << ps.aiConfig.searchDepth;
     }
     std::cout << ").\n";
     if (ps.type == PlayerType::GreedyAI)
       playerObjects_.emplace_back(
           std::make_unique<GreedyAI>(ps.id, &board_, ps.aiConfig));
+    else if (ps.type == PlayerType::BeamAI)
+      playerObjects_.emplace_back(
+          std::make_unique<BeamAI>(ps.id, &board_, ps.aiConfig));
     else
       playerObjects_.emplace_back(
           std::make_unique<MinimaxAI>(ps.id, &board_, ps.aiConfig));

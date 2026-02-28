@@ -92,6 +92,8 @@ Starting game with 2 players, max 200 turns.
 
 ### Config file mode
 
+*The `BeamAI` (formerly AdvancedAI) uses beam search — see docs below.*
+
 ```bash
 ./build/chinese_checkers config.ini
 ```

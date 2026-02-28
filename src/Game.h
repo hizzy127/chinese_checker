@@ -11,7 +11,7 @@
 
 namespace chinese_checkers {
 
-enum class PlayerType { GreedyAI, MinimaxAI };
+enum class PlayerType { GreedyAI, MinimaxAI, BeamAI };
 
 /// Per-player configuration: ID, AI type, and AI parameters.
 struct PlayerSetup {

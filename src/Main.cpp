@@ -28,6 +28,8 @@ static GameConfig loadConfigFromFile(const std::string &filePath) {
     PlayerType type = PlayerType::MinimaxAI;
     if (pc.type == "GreedyAI" || pc.type == "greedy" || pc.type == "1")
       type = PlayerType::GreedyAI;
+    else if (pc.type == "BeamAI" || pc.type == "beam" || pc.type == "3")
+      type = PlayerType::BeamAI;
     cfg.playerSetups.emplace_back(pc.id, type, pc.aiConfig);
   }
   return cfg;
@@ -73,7 +75,7 @@ static GameConfig promptConfig() {
 
   // --- Select AI type per player ---
   std::cout << "\nSelect AI type for each player:\n"
-            << "  [1] GreedyAI   [2] MinimaxAI\n\n";
+            << "  [1] GreedyAI   [2] MinimaxAI   [3] BeamAI\n\n";
   for (int id : playerIds) {
     PlayerType type = PlayerType::MinimaxAI;
     while (true) {
@@ -88,7 +90,11 @@ static GameConfig promptConfig() {
         type = PlayerType::GreedyAI;
         break;
       }
-      std::cout << "    Please enter 1 or 2.\n";
+      if (line == "3") {
+        type = PlayerType::BeamAI;
+        break;
+      }
+      std::cout << "    Please enter 1, 2, or 3.\n";
     }
     cfg.playerSetups.emplace_back(id, type);
   }
