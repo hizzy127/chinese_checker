@@ -1,0 +1,8 @@
+# Build output
+build/
+
+# VS Code settings
+.vscode/
+
+# macOS metadata
+.DS_Store
