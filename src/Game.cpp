@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "player/AIConfig.h"
 #include "player/GreedyAI.h"
 #include "player/MinimaxAI.h"
 #include <iostream>
@@ -40,6 +41,37 @@ Game::Game(const std::vector<std::pair<int, PlayerType>> &playerConfigs) {
       playerObjects_.emplace_back(std::make_unique<GreedyAI>(id, &board_));
     else
       playerObjects_.emplace_back(std::make_unique<MinimaxAI>(id, &board_));
+  }
+  players_ = playerIds;
+}
+
+Game::Game(const std::vector<PlayerSetup> &playerSetups) {
+  std::vector<int> playerIds;
+  playerIds.reserve(playerSetups.size());
+  for (auto &ps : playerSetups)
+    playerIds.push_back(ps.id);
+
+  board_ = Board(playerIds);
+  numPlayers_ = static_cast<int>(playerSetups.size());
+  gameOver_ = false;
+  winner_ = -1;
+
+  std::cout << "Board initialized with " << numPlayers_ << " players."
+            << std::endl;
+  for (auto &ps : playerSetups) {
+    const char *typeName =
+        (ps.type == PlayerType::GreedyAI) ? "GreedyAI" : "MinimaxAI";
+    std::cout << "Player " << ps.id << " in game (" << typeName;
+    if (ps.type == PlayerType::MinimaxAI) {
+      std::cout << ", depth=" << ps.aiConfig.searchDepth;
+    }
+    std::cout << ").\n";
+    if (ps.type == PlayerType::GreedyAI)
+      playerObjects_.emplace_back(
+          std::make_unique<GreedyAI>(ps.id, &board_, ps.aiConfig));
+    else
+      playerObjects_.emplace_back(
+          std::make_unique<MinimaxAI>(ps.id, &board_, ps.aiConfig));
   }
   players_ = playerIds;
 }

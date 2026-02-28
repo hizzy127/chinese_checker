@@ -1,3 +1,4 @@
+#include "ConfigParser.h"
 #include "Game.h"
 #include <algorithm>
 #include <iostream>
@@ -9,9 +10,28 @@
 using namespace chinese_checkers;
 
 struct GameConfig {
-  std::vector<std::pair<int, PlayerType>> playerConfigs;
+  std::vector<PlayerSetup> playerSetups;
   int maxTurns = 500;
 };
+
+static GameConfig loadConfigFromFile(const std::string &filePath) {
+  GameConfig cfg;
+  GameFileConfig fileCfg;
+  if (!ConfigParser::parse(filePath, fileCfg)) {
+    std::cerr << "Failed to load config from " << filePath
+              << ". Falling back to interactive setup.\n";
+    return cfg; // empty → caller will detect and fall back
+  }
+
+  cfg.maxTurns = fileCfg.maxTurns;
+  for (auto &pc : fileCfg.players) {
+    PlayerType type = PlayerType::MinimaxAI;
+    if (pc.type == "GreedyAI" || pc.type == "greedy" || pc.type == "1")
+      type = PlayerType::GreedyAI;
+    cfg.playerSetups.emplace_back(pc.id, type, pc.aiConfig);
+  }
+  return cfg;
+}
 
 static GameConfig promptConfig() {
   GameConfig cfg;
@@ -70,7 +90,7 @@ static GameConfig promptConfig() {
       }
       std::cout << "    Please enter 1 or 2.\n";
     }
-    cfg.playerConfigs.emplace_back(id, type);
+    cfg.playerSetups.emplace_back(id, type);
   }
 
   // --- Max turns ---
@@ -90,13 +110,31 @@ static GameConfig promptConfig() {
   return cfg;
 }
 
-int main() {
-  GameConfig cfg = promptConfig();
+int main(int argc, char *argv[]) {
+  GameConfig cfg;
 
-  std::cout << "\nStarting game with " << cfg.playerConfigs.size()
+  // Try to load config from file if provided as argument or default path
+  std::string configPath;
+  if (argc > 1) {
+    configPath = argv[1];
+  }
+
+  if (!configPath.empty()) {
+    cfg = loadConfigFromFile(configPath);
+    if (!cfg.playerSetups.empty()) {
+      std::cout << "Loaded config from: " << configPath << "\n";
+    }
+  }
+
+  // Fall back to interactive prompt if no config loaded
+  if (cfg.playerSetups.empty()) {
+    cfg = promptConfig();
+  }
+
+  std::cout << "\nStarting game with " << cfg.playerSetups.size()
             << " players, max " << cfg.maxTurns << " turns.\n\n";
 
-  Game game(cfg.playerConfigs);
+  Game game(cfg.playerSetups);
 
   int numTurns = 1;
   while (!game.isGameOver() && numTurns <= cfg.maxTurns) {

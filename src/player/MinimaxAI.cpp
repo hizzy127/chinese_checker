@@ -8,9 +8,6 @@
 
 namespace chinese_checkers {
 
-const int SEARCH_DEPTH = 3;
-const float DEVIATION_PENALTY = 0.5f;
-
 Move MinimaxAI::getNextMove() const {
   auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -31,7 +28,8 @@ Move MinimaxAI::getNextMove() const {
         std::launch::async, [this, move]() -> std::pair<Move, float> {
           // Create a deep copy of the board for this thread
           Board boardCopy = board_->clone();
-          return {move, evaluateMoveOnBoard(boardCopy, move, SEARCH_DEPTH)};
+          return {move,
+                  evaluateMoveOnBoard(boardCopy, move, config_.searchDepth)};
         }));
   }
 
@@ -74,15 +72,11 @@ float MinimaxAI::evaluateMove(const Move &move, int depth) const {
 
   board_->applyMove(move);
   if (board_->checkWin(id_ - 1)) {
-    // std::cout << "MinimaxAI Player " << id_ << " found winning move: ("
-    //           << move.from.x << ", " << move.from.y << ") to (" << move.to.x
-    //           << ", " << move.to.y << "). Current depth: " << depth
-    //           << std::endl;
     board_->applyMove(reverseMove); // undo move
-    return 1000.0f;                 // Winning move
+    return config_.winScore;        // Winning move
   }
 
-  if (depth <= 0 || baseScore < -2.0f) {
+  if (depth <= 0 || baseScore < config_.baseScoreCutoff) {
     board_->applyMove(reverseMove); // undo move
     return baseScore;
   }
@@ -96,8 +90,8 @@ float MinimaxAI::evaluateMove(const Move &move, int depth) const {
   }
   board_->applyMove(reverseMove); // Undo move
 
-  return isMaximizing ? baseScore + 0.9f * nextMoveScore
-                      : baseScore - 0.3f * nextMoveScore;
+  return isMaximizing ? baseScore + config_.futureDiscount * nextMoveScore
+                      : baseScore - config_.opponentDiscount * nextMoveScore;
 }
 
 float MinimaxAI::evaluateMoveOnBoard(Board &boardCopy, const Move &move,
@@ -108,10 +102,10 @@ float MinimaxAI::evaluateMoveOnBoard(Board &boardCopy, const Move &move,
   boardCopy.applyMove(move);
   if (boardCopy.checkWin(id_)) {
     boardCopy.applyMove(reverseMove); // undo move
-    return 1000.0f;                   // Winning move
+    return config_.winScore;          // Winning move
   }
 
-  if (depth <= 0 || baseScore < -2.0f) {
+  if (depth <= 0 || baseScore < config_.baseScoreCutoff) {
     boardCopy.applyMove(reverseMove); // undo move
     return baseScore;
   }
@@ -125,7 +119,7 @@ float MinimaxAI::evaluateMoveOnBoard(Board &boardCopy, const Move &move,
         evaluateMoveOnBoard(boardCopy, nextMove, depth - 1), nextMoveScore);
   }
   boardCopy.applyMove(reverseMove); // Undo move
-  return baseScore + 0.9f * nextMoveScore;
+  return baseScore + config_.futureDiscount * nextMoveScore;
 }
 
 float MinimaxAI::bestFirstSearch(Board &boardCopy, const Move &move,
@@ -138,7 +132,7 @@ float MinimaxAI::bestFirstSearch(Board &boardCopy, const Move &move,
   // Check for winning condition
   if (boardCopy.checkWin(id_)) {
     boardCopy.applyMove(reverseMove);
-    return 1000.0f + baseScore; // High bonus for winning
+    return config_.winScore + baseScore; // High bonus for winning
   }
 
   if (depth <= 0) {
@@ -154,8 +148,8 @@ float MinimaxAI::bestFirstSearch(Board &boardCopy, const Move &move,
 
   float bestFutureScore = 0.0f;
   int movesEvaluated = 0;
-  const int maxMovesToEvaluate =
-      std::min(20, (int)availableMoves.size()); // Limit branching
+  const int maxMovesToEvaluate = std::min(
+      config_.maxBranch, (int)availableMoves.size()); // Limit branching
 
   for (const auto &nextMove : availableMoves) {
     if (movesEvaluated >= maxMovesToEvaluate)
@@ -167,7 +161,8 @@ float MinimaxAI::bestFirstSearch(Board &boardCopy, const Move &move,
   }
 
   boardCopy.applyMove(reverseMove);
-  return baseScore + 0.8f * bestFutureScore; // Discount future moves
+  return baseScore +
+         config_.bfsDiscount * bestFutureScore; // Discount future moves
 }
 
 std::vector<Move> MinimaxAI::orderMoves(const std::list<Move> &moves) const {
@@ -247,7 +242,7 @@ int MinimaxAI::getMoveScore(const Move &move) const {
   if (toRegion != homeRegion && toRegion != GridRegion::Public &&
       toRegion != targetRegion) {
     // Penalize moving out of home region unless it's to the public region
-    score -= 10.0f;
+    score -= config_.wrongRegionPenalty;
   }
 
   float toDeviation = 0.0f;
@@ -273,7 +268,7 @@ int MinimaxAI::getMoveScore(const Move &move) const {
   }
 
   if (toDeviation > fromDeviation) {
-    score -= DEVIATION_PENALTY * (toDeviation - fromDeviation);
+    score -= config_.deviationPenalty * (toDeviation - fromDeviation);
   }
 
   float moveTowardTarget = 0.0f;
@@ -302,7 +297,7 @@ int MinimaxAI::getMoveScore(const Move &move) const {
   score += moveTowardTarget;
 
   if (fromRegion == homeRegion && moveTowardTarget > 0) {
-    score += 0.5f * moveTowardTarget;
+    score += config_.homeRegionBonus * moveTowardTarget;
     // score += 1.5f;
   }
   return score;
